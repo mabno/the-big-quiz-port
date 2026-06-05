@@ -8,6 +8,12 @@ La inmersiva interfaz gráfica y la música estimulante crean el ambiente perfec
 
 <img src = "public/assets/imagen-quiz3-wollok.png" width=512 height=512>
 
+## 🏆 Tercer puesto — Wollok Game 2023
+
+<img src="docs/wollok-game-2023-banner.png" alt="Banner de The Big Quiz en el Wollok Game 2023" width="700">
+
+*The Big Quiz* obtuvo el **tercer puesto 🥉 en el concurso [Wollok Game 2023](https://docs.google.com/document/d/e/2PACX-1vQOapZd5M2xEoq6RR9PiHCynvIJ0A2SRlP_1wTy2I2-D7go7jSan8dAjTBs3C74SmKH-y80jnBoWpM3/pub)**, desarrollado por Joaquín Terzano y Mariano Baldovino (UTN - FRD).
+
 ## Jugar online
 
 **[▶ Jugar The Big Quiz](https://mabno.github.io/the-big-quiz-port/)** — port web (HTML5 + TypeScript) del juego original escrito en Wollok.
