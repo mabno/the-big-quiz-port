@@ -121,4 +121,8 @@ El detalle fino está comentado en la cabecera de `src/scenes/minigame.ts`
   transición ASIMÉTRICO de créditos (izq mantiene el ah-shit-here-we-go-again,
   der suena el crash; así no se mezclan). Es un nodo HOJA sin salidas y con
   música `silence`: de una BSOD no se vuelve — el "reboot" es recargar la
-  página.
+  página. Para más inmersión, el nodo tiñe también el FONDO DE LA PÁGINA (el
+  letterbox alrededor del canvas) del mismo azul de la imagen (`pageBackground:
+  '#0000AA'`, sampleado de `imagen-bsod.png`): la pantalla azul ocupa todo el
+  visor, no solo el canvas. El `#app` del index.html es transparente a
+  propósito para que ese tinte se vea; el resto de los nodos vuelve al negro.

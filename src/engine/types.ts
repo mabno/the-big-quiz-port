@@ -88,6 +88,12 @@ export interface NarrativeNode {
   correctAnswer?: Direction;
   /** Sonidos [acierto, error] para nodos tipo quiz. Por defecto correct-yay / incorrect-buzzer. */
   quizSounds?: [string, string];
+  /**
+   * Color CSS de fondo de la PÁGINA (la zona de letterbox alrededor del canvas)
+   * mientras este nodo está activo. Si se omite, negro (#000). Lo usa el nodo
+   * `bsod` para teñir todo el visor del azul de la pantalla azul (inmersión).
+   */
+  pageBackground?: string;
 }
 
 /**

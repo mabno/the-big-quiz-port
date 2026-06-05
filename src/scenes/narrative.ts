@@ -17,9 +17,12 @@ import { LOGICAL_WIDTH, LOGICAL_HEIGHT } from '../engine/renderer.js';
 
 /**
  * Segundos que las decisiones quedan bloqueadas al cargar un nodo nuevo
- * (anti-flood de clicks). El contador se muestra en la esquina inferior derecha.
+ * (anti-flood de clicks). El contador se muestra centrado en el borde inferior.
  */
 const NODE_LOCK_SECONDS = 3;
+
+/** Fondo por defecto de la página (letterbox alrededor del canvas). */
+const DEFAULT_PAGE_BACKGROUND = '#000';
 
 export class NarrativeScene implements Scene {
   private readonly ctx: GameContext;
@@ -54,6 +57,9 @@ export class NarrativeScene implements Scene {
     // Limpia handlers para que no se solapen con la siguiente escena.
     for (const off of this.cleanups) off();
     this.cleanups = [];
+    // Restaura el fondo de la página por si el nodo activo lo había teñido
+    // (las otras escenas asumen el letterbox negro).
+    document.body.style.background = DEFAULT_PAGE_BACKGROUND;
   }
 
   /** Procesa una decisión del jugador y avanza el autómata. */
@@ -84,6 +90,10 @@ export class NarrativeScene implements Scene {
   /** Carga la imagen del nodo actual y la deja lista para render. */
   private refreshNode(): void {
     const node = this.machine.currentNode;
+    // Fondo de la PÁGINA (letterbox): los nodos pueden teñirlo (p. ej. bsod lo
+    // pinta del azul de la pantalla azul para que ocupe todo el visor). El #app
+    // del index.html es transparente a propósito para que esto se vea.
+    document.body.style.background = node.pageBackground ?? DEFAULT_PAGE_BACKGROUND;
     this.currentImage = this.ctx.renderer.getCached(node.image) ?? null;
     void this.ctx.renderer
       .loadImage(node.image)

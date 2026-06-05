@@ -39,7 +39,10 @@
         height: 100vh;
         height: 100dvh;
       }
-      /* Contenedor que centra el canvas y aplica letterboxing */
+      /* Contenedor que centra el canvas y aplica letterboxing.
+         Transparente A PROPÓSITO: el color del letterbox lo da el background del
+         <body>, que la escena narrativa puede teñir por nodo (pageBackground,
+         p. ej. el azul de la BSOD). Si se pinta acá, taparía ese efecto. */
       #app {
         width: 100vw;
         height: 100vh;
@@ -47,7 +50,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #000;
+        background: transparent;
         overflow: hidden;
       }
       /* El canvas mantiene la relación de aspecto del tablero Wollok (1024x896) */

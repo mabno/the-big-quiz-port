@@ -501,5 +501,7 @@ export const TREE: Record<string, NarrativeNode> = {
   // recargar la página). `silence` corta la música de créditos: la máquina
   // "se colgó". Imagen: Windows 9X BSOD (Wikimedia Commons) -> imagen-bsod.png.
   // El critical-error suena como transición creditos->right (ver arriba).
-  bsod: { id: 'bsod', image: 'bsod', music: M.silence },
+  // pageBackground tiñe el letterbox de la página del MISMO azul que la imagen
+  // (#0000AA, sampleado de imagen-bsod.png) para que la BSOD ocupe todo el visor.
+  bsod: { id: 'bsod', image: 'bsod', music: M.silence, pageBackground: '#0000AA' },
 };
