@@ -1,66 +1,30 @@
-# The Big Quiz — Port web (HTML5 + TypeScript)
+# The Big Quiz
 
-Port del juego **The Big Quiz** (originalmente escrito en Wollok) a la web, usando
-**Vite + TypeScript vanilla** (sin React, sin Phaser, sin dependencias de runtime).
+*The Big Quiz* es un galardonado juego de preguntas que supone un desafío incluso para las mentes más brillantes, así que imaginate el esfuerzo infernal al que tu cerebro será sometido. Se pondrán a prueba tus conocimientos adquiridos en la carrera de Ingeniería en Sistemas, desde los principios de la informática, hasta la mecánica cuántica.
 
-## Cómo correrlo
+<img src = "public/assets/imagen-quiz-0.png" width=512 height=512>
 
-```bash
-npm install      # instala vite + typescript (solo devDependencies)
-npm run dev      # levanta el servidor de desarrollo de Vite
-```
+La inmersiva interfaz gráfica y la música estimulante crean el ambiente perfecto para estudiar. Y vas a tener que hacerlo, porque este juego no es una trivia casual como *Preguntados*, más bien, es una prueba de resistencia intelectual que no tolera la mediocridad. La frustración puede ser parte del viaje para aquellos que no estén a la altura del desafío que propone *The Big Quiz*.
 
-Otros scripts:
+<img src = "public/assets/imagen-quiz3-wollok.png" width=512 height=512>
 
-```bash
-npm run build        # build de producción (NO usar durante el desarrollo guiado)
-npm run preview      # sirve el build de producción
-npm run typecheck    # tsc --noEmit (chequeo de tipos sin emitir)
-```
+## Jugar online
 
-## Arquitectura
+**[▶ Jugar The Big Quiz](https://mabno.github.io/the-big-quiz-port/)** — port web (HTML5 + TypeScript) del juego original escrito en Wollok.
 
-El juego es ~70% **novela visual** (una máquina de estados: imagen a pantalla
-completa + audio por estado, decisiones Left/Right) y ~30% **minijuegos arcade**
-(items que caen, movimiento del jugador con `a`/`d`).
+Los detalles técnicos del port están en [docs/port-web.md](docs/port-web.md). El guion original del juego está en [historia.md](historia.md) (spoilers, obviamente).
 
-### Tablero (heredado de Wollok)
+## Controles
 
-- 32 × 28 celdas, celda de 32 px → **resolución lógica 1024 × 896**.
-- **El eje Y crece HACIA ARRIBA** (origen abajo-izquierda), igual que `wollok.game`.
-  El renderer convierte a coordenadas de canvas.
-- El canvas se escala a la ventana con **letterboxing** manteniendo la relación de aspecto.
+Elegís las opciones, izquierda o derecha, con las flechas del teclado. ¡Más sencillo, imposible! Ideal para vos.
 
-### Estructura
+## Reseñas
 
-```
-src/
-  engine/
-    types.ts         # Tipos núcleo: NarrativeNode, Scene, GameContext, MinigameConfig.
-    renderer.ts      # Canvas único, escala con letterbox, cache de imágenes, drawSprite (eje Y Wollok).
-    audio.ts         # AudioManager sobre HTMLAudioElement: música única + sfx, unlock() por autoplay.
-    input.ts         # Teclado: onKey(...) con limpieza por escena + isDown(...) para el minijuego.
-    stateMachine.ts  # Autómata: registro de nodos, transiciones (id o función de puntaje), efectos onEnter.
-    assets.ts        # Mapea nombres "pelados" a URLs /assets/... (carpeta plana).
-  scenes/
-    narrative.ts     # Escena de novela visual (implementación real).
-    minigame.ts      # STUB del minijuego arcade (otro agente lo implementa).
-    data/tree.ts     # PLACEHOLDER del árbol de estados (lo reemplaza el port de tree.wlk).
-  main.ts            # Arranque: pantalla de inicio → unlock de audio → escena narrativa.
-public/
-  assets/            # 319 assets (177 PNG + 141 MP3 + 1 JPG), nombres originales exactos.
-```
+**elandres2**, ★★★★☆: *Un jueguito de nivel para disfrutar en la costa. De casualidad lo enganché mientras tiraba facha en la playa y, obvio, le di con todo. Acerté casi todas las preguntas jaja. Sin estudiar, pura chispa. Un consejo, de hombre a hombre: salí a la calle, dale charla a las pibas. No todo es estudio, bro. Dicho con buena onda, porque algunos tipos cobran por este tipo de sabiduría. Ahora que lo pienso, podría considerar el coaching. Manden follow en IG @elandres2 para más novedades. Saludos desde Mar del Plata ;)*
 
-### Sistema de audio
 
-Solo suena **una pista de música a la vez**: cambiar de pista corta la previa
-(replica el `alternar()` de `musica.wlk`). Los efectos de sonido (sfx) se reproducen
-encima sin cortar la música. Por la política de autoplay del navegador, el audio se
-**desbloquea con la primera tecla** (pantalla de inicio).
 
-### Puntaje y ramificación
+**CriticusSapientiae**, ★★★☆☆: *El videojuego en cuestión presenta interrogantes de elevada especificidad, en algunas instancias percibidas como irrelevantes. La trama, por desgracia, carece de la originalidad distintiva, y las alternativas de elección exhiben un tono subóptimo, revelándose como escasamente realistas, lo cual perturba el flujo lógico de la narrativa. Adicionalmente, ciertas decisiones conllevan consecuencias notoriamente severas, desafiando la coherencia con el desarrollo global de los acontecimientos. A pesar de su encomiable propuesta, se aguardaría una atención más marcada a la coherencia y la lógica en la trama, así como en las elecciones a disposición.*
 
-El puntaje vive en el `GameContext`. Algunos nodos ramifican según el puntaje:
-las transiciones pueden ser un id de nodo **o una función** del contexto que devuelve
-el id destino (replica `EstadoResultado`/`EstadoFinExamen`, que en Wollok hacían
-`transiciones().get(juego.puntaje())`).
+
+**mariajuana**, ★★★★★: *Me mató el mate, literal!*
