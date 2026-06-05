@@ -1,5 +1,8 @@
 # The Big Quiz
 
+> [!WARNING]
+> **Disclaimer**: el código no es muy objetoso, podría herir sensibilidades de profesores de asignaturas tales como Paradigmas de Programación.
+
 *The Big Quiz* es un galardonado juego de preguntas que supone un desafío incluso para las mentes más brillantes, así que imaginate el esfuerzo infernal al que tu cerebro será sometido. Se pondrán a prueba tus conocimientos adquiridos en la carrera de Ingeniería en Sistemas, desde los principios de la informática, hasta la mecánica cuántica.
 
 <img src = "public/assets/imagen-quiz-0.png" width=512 height=512>
