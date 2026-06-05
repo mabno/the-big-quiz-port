@@ -15,6 +15,13 @@
 //    sus nodos DESTINO (izq -> musica[0], der -> musica[1]). `silence` corta la
 //    música de fondo (no hay pista audible). quiz arranca con `dreamscape` desde
 //    el inicio (juego.init hacía game.schedule(0,{quiz.alternar()})).
+//    OJO con la SEMÁNTICA: poneMusica() hacía cancion.alternar(), un TOGGLE
+//    play/pausa de ESA pista (musica.wlk). O sea que [quiz, quiz] sobre un nodo
+//    con dreamscape ya sonando NO la re-afirmaba: la PAUSABA. Los pares de
+//    toggles del original (init/quiz_6, intro_quiz2/quiz2_caca,
+//    intro_quiz3/quiz3_wollok, intro_quiz4/quiz4_wollok) prenden la pista al
+//    entrar a cada quiz y la CORTAN al salir. Acá ese resultado audible se
+//    modela en los destinos: M.quiz al entrar al quiz, M.silence al salir.
 //
 // 2. PUNTAJE DE QUIZ. `EstadoQuiz.transicion()` incrementa el puntaje si la
 //    respuesta fue correcta, AL SALIR del quiz, antes de que el estado siguiente
@@ -175,12 +182,16 @@ export const TREE: Record<string, NarrativeNode> = {
     right: (ctx) => { if (ctx.playerInput === 0) ctx.addScore(1); return pickByScore(QUIZ_6_TARGETS, ctx.score); },
   },
 
-  // --- Resultados del primer quiz (heredan música quiz del quiz_6) ---------
-  resultado_0: { id: 'resultado_0', image: 'resultado-0', sound: 'quiz-0', music: M.quiz, left: 'cafe', right: 'mate' },
-  resultado_1: { id: 'resultado_1', image: 'resultado-1', sound: 'quiz-1', music: M.quiz, left: 'cafe', right: 'mate' },
-  resultado_2: { id: 'resultado_2', image: 'resultado-2', sound: 'quiz-2', music: M.quiz, left: 'cafe', right: 'mate' },
-  resultado_3: { id: 'resultado_3', image: 'resultado-3', sound: 'quiz-3', music: M.quiz, left: 'cafe', right: 'mate' },
-  resultado_4: { id: 'resultado_4', image: 'resultado-4', sound: 'quiz-4', music: M.quiz, left: 'cafe', right: 'mate' },
+  // --- Resultados del primer quiz ------------------------------------------
+  // El [quiz, quiz] de quiz_6 ALTERNABA la pista (toggle): dreamscape venía
+  // sonando -> PAUSA. La aventura arranca SIN música; por eso M.silence acá
+  // (antes decía M.quiz por la mala lectura del toggle y la música del quiz
+  // quedaba sonando para siempre).
+  resultado_0: { id: 'resultado_0', image: 'resultado-0', sound: 'quiz-0', music: M.silence, left: 'cafe', right: 'mate' },
+  resultado_1: { id: 'resultado_1', image: 'resultado-1', sound: 'quiz-1', music: M.silence, left: 'cafe', right: 'mate' },
+  resultado_2: { id: 'resultado_2', image: 'resultado-2', sound: 'quiz-2', music: M.silence, left: 'cafe', right: 'mate' },
+  resultado_3: { id: 'resultado_3', image: 'resultado-3', sound: 'quiz-3', music: M.silence, left: 'cafe', right: 'mate' },
+  resultado_4: { id: 'resultado_4', image: 'resultado-4', sound: 'quiz-4', music: M.silence, left: 'cafe', right: 'mate' },
 
   // --- Rama CAFÉ -----------------------------------------------------------
   cafe: { id: 'cafe', image: 'cafe', left: 'chad_cafe_solo', right: 'leche' },
@@ -247,7 +258,8 @@ export const TREE: Record<string, NarrativeNode> = {
   quiz2_3: { id: 'quiz2_3', image: 'quiz2-3', correctAnswer: 'left', left: quizGoto('quiz2_caca', 0), right: quizGoto('quiz2_caca', 0) },
   quiz2_caca: { id: 'quiz2_caca', image: 'quiz2-caca', sound: 'quieres-que-te-haga-caca-en-la-cara', music: M.quiz, correctAnswer: 'right', left: quizGoto('suena_telefono_0', 1), right: quizGoto('suena_telefono_0', 1) },
 
-  suena_telefono_0: { id: 'suena_telefono_0', image: 'suena-telefono-0', sound: 'telefono', left: 'contesta_telefono_0', right: 'suena_telefono_1' },
+  // El [quiz, quiz] de quiz2_caca alternaba (toggle): corta la música del quiz 2.
+  suena_telefono_0: { id: 'suena_telefono_0', image: 'suena-telefono-0', sound: 'telefono', music: M.silence, left: 'contesta_telefono_0', right: 'suena_telefono_1' },
 
   // Contestar
   contesta_telefono_0: { id: 'contesta_telefono_0', image: 'contesta-telefono-0', sound: 'me-he-dejado-las-llaves-dentro', left: 'contesta_telefono_1', right: 'contesta_telefono_1' },
