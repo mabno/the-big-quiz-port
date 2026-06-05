@@ -16,7 +16,7 @@ La inmersiva interfaz gráfica y la música estimulante crean el ambiente perfec
 
 ## Jugar online
 
-**[▶ Jugar The Big Quiz](https://mabno.github.io/the-big-quiz-port/)** — port web (HTML5 + TypeScript) del juego original escrito en Wollok.
+**[▶ Jugar The Big Quiz](https://mabno.github.io/the-big-quiz-port/)** — port web (HTML5 + TypeScript) del [juego original escrito en Wollok](https://github.com/pdep-utn-frd/2023-tpgame-mathbros).
 
 Los detalles técnicos del port están en [docs/port-web.md](docs/port-web.md). El guion original del juego está en [historia.md](historia.md) (spoilers, obviamente).
 
