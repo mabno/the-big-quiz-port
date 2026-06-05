@@ -44,7 +44,7 @@ src/
     assets.ts        # Mapea nombres "pelados" a URLs /assets/... (carpeta plana).
   scenes/
     narrative.ts     # Escena de novela visual (implementación real).
-    minigame.ts      # STUB del minijuego arcade (otro agente lo implementa).
+    minigame.ts      # Minijuego arcade del mono (caída continua de ítems, sprites 2x2 celdas).
     data/tree.ts     # PLACEHOLDER del árbol de estados (lo reemplaza el port de tree.wlk).
   main.ts            # Arranque: pantalla de inicio → unlock de audio → escena narrativa.
 public/
@@ -64,3 +64,31 @@ El puntaje vive en el `GameContext`. Algunos nodos ramifican según el puntaje:
 las transiciones pueden ser un id de nodo **o una función** del contexto que devuelve
 el id destino (replica `EstadoResultado`/`EstadoFinExamen`, que en Wollok hacían
 `transiciones().get(juego.puntaje())`).
+
+### Minijuego del mono — drift respecto del original
+
+La MECÁNICA es fiel al Wollok original (tablero, tipos de ítem, puntajes,
+dificultad, ventana de colisión, condiciones de fin), pero la PRESENTACIÓN se
+despega deliberadamente:
+
+- **Sprites a 2×2 celdas (64 px)**: el mono y los ítems se dibujan al doble del
+  tamaño. Los PNG son de 64×64 nativos, así que se ven 1:1 (a 1 celda / 32 px se
+  reducían a la mitad). Solo cambia el dibujo: la colisión sigue siendo por celda
+  exacta (`item.x == jugador.x`), como en el original.
+- **Caída continua de los ítems**: en `wollok.game` los ítems bajaban de a 1 celda
+  por tick (limitación de grid del motor). Acá `item.y` es un float que avanza por
+  frame, con la velocidad equivalente exacta (1 celda cada `delay` ticks de 100 ms).
+  La colisión se muestrea por tick sobre `Math.round(y)`, así que la ventana de
+  atrape dura lo mismo que en el original.
+- **Animación del mono**: la lógica de movimiento sigue siendo por celdas (un
+  keydown = una celda, clamp 0..31, colisión sobre `playerX` entero), pero el
+  sprite se desliza hacia su celda destino con un ease exponencial
+  (`playerVisualX`) en vez de teletransportarse de celda en celda.
+- **Bugfix de velocidad (2×)**: la escena corría un `requestAnimationFrame` propio
+  y ADEMÁS el bucle global de `main.ts` le llamaba `update(dt)`; el update doble
+  llenaba el acumulador de ticks al doble y el minijuego corría a **2× la
+  velocidad del original**. Ahora el único driver de update/render es el bucle
+  global.
+
+El detalle fino está comentado en la cabecera de `src/scenes/minigame.ts`
+(sección «DESVÍOS DELIBERADOS DEL ORIGINAL»).
