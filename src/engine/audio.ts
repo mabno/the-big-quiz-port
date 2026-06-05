@@ -32,6 +32,8 @@ export class AudioManager {
   private readonly cache = new Map<string, HTMLAudioElement>();
   /** Estado de la música de fondo (una sola a la vez). */
   private readonly music: MusicState = { url: null, element: null };
+  /** Sfx actualmente sonando (clones). Se sacan al terminar o al cortarlos. */
+  private readonly activeSfx = new Set<HTMLAudioElement>();
   /** Indica si ya hubo gesto de usuario (autoplay desbloqueado). */
   private unlocked = false;
   /** Elemento silencioso reutilizable para primar el audio en iOS. */
@@ -153,9 +155,27 @@ export class AudioManager {
     // Clonamos para que SFX rápidos no se pisen entre sí.
     const node = base.cloneNode(true) as HTMLAudioElement;
     node.volume = volume;
+    // Trackeamos el clon para poder cortarlo en stopAllSfx(); cloneNode NO copia
+    // listeners, así que el 'ended' se registra acá sobre el clon.
+    this.activeSfx.add(node);
+    node.addEventListener('ended', () => this.activeSfx.delete(node));
     void node.play().catch(() => {
-      /* ignore */
+      // Si el play falla, el clon no quedó sonando: lo sacamos del tracking.
+      this.activeSfx.delete(node);
     });
+  }
+
+  /**
+   * Corta TODOS los efectos de sonido en curso (la música de fondo NO se toca).
+   * Se usa al cambiar de nodo/escena para que los sfx largos de un estado no se
+   * mezclen con los del siguiente.
+   */
+  stopAllSfx(): void {
+    for (const node of this.activeSfx) {
+      node.pause();
+      node.currentTime = 0;
+    }
+    this.activeSfx.clear();
   }
 
   /** URL de la música que está sonando (para depurar / lógica de cambio). */

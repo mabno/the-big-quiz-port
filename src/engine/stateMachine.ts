@@ -45,12 +45,26 @@ export class StateMachine {
     return this.current;
   }
 
+  /**
+   * Aplica los efectos de entrada del nodo INICIAL. Debe llamarse UNA vez al
+   * arrancar el juego (tras el unlock de audio del primer gesto). Replica
+   * juego.init() de Wollok, que arrancaba la música del quiz al iniciar
+   * (game.schedule(0, { quiz.alternar() })). Sin esto, el constructor solo
+   * asigna `current` y la música del nodo inicial (quiz_0) nunca suena.
+   */
+  start(): void {
+    this.applyEnter(this.current);
+  }
+
   /** Posiciona la máquina en un nodo arbitrario (p. ej. al volver de un minijuego). */
   goTo(nodeId: string): void {
     const node = this.nodes[nodeId];
     if (!node) {
       throw new Error(`Nodo desconocido: ${nodeId}`);
     }
+    // Mismo corte que en transition(): al saltar de nodo (p. ej. al volver del
+    // minijuego) no deben quedar sfx del nodo/escena anterior sonando.
+    this.ctx.audio.stopAllSfx();
     this.current = node;
     this.applyEnter(node);
   }
@@ -77,6 +91,12 @@ export class StateMachine {
    */
   transition(direction: Direction): NarrativeNode {
     this.ctx.playerInput = direction === 'left' ? 0 : 1;
+
+    // Corta los sfx en curso ANTES del sonido de transición: lo que venía sonando
+    // del nodo que se abandona no debe mezclarse con los audios del cambio. El
+    // ORDEN importa: el yay/buzzer del quiz se dispara DESPUÉS del corte, así el
+    // feedback de acierto/error se escucha completo.
+    this.ctx.audio.stopAllSfx();
 
     // Sonido de transición del nodo actual (acierto/error en quizzes).
     this.playTransitionSound(this.current, direction);

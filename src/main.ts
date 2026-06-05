@@ -79,6 +79,8 @@ function boot(): void {
     enter(): void {
       // El arranque lo dispara el `startHandler` global (cualquier tecla).
       // No registramos handlers acá para no duplicar la captura.
+      // Precarga del sello PEGI (broma) para que aparezca apenas cargue.
+      void renderer.loadImage('pegi-18.png');
     },
     exit(): void {
       /* nada que limpiar */
@@ -110,6 +112,17 @@ function boot(): void {
           LOGICAL_HEIGHT / 2 + 70,
         );
       }
+
+      // BROMA: sello PEGI 18 real (Wikimedia Commons -> assets/pegi-18.png;
+      // el juego NO está clasificado). Esquina inferior izquierda, como en las
+      // cajas de los juegos. Se preserva la relación de aspecto del PNG.
+      const pegi = renderer.getCached('pegi-18.png');
+      if (pegi) {
+        const pegiH = 110;
+        const pegiW = (pegiH * pegi.width) / pegi.height;
+        c.drawImage(pegi, 24, LOGICAL_HEIGHT - 24 - pegiH, pegiW, pegiH);
+      }
+
       // Restaura alineación por defecto para otras escenas.
       c.textAlign = 'left';
     },
@@ -124,6 +137,12 @@ function boot(): void {
     window.removeEventListener('keydown', startHandler);
     audio.unlock();
     ctx.setScene(narrative);
+    // Efectos de entrada del nodo INICIAL (replica juego.init() de Wollok).
+    // BUGFIX: sin esto la música del quiz (declarada en quiz_0, el nodo inicial)
+    // nunca arrancaba: el constructor de la máquina asigna `current` sin aplicar
+    // applyEnter, y nadie más lo hacía. Va DESPUÉS del unlock para que la pista
+    // suene de inmediato dentro del gesto del usuario.
+    machine.start();
   };
   const startHandler = (): void => startGame();
   window.addEventListener('keydown', startHandler);

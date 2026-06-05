@@ -40,8 +40,9 @@
 // 6. COSAS QUE EL MOTOR NO PUEDE EXPRESAR (ver reporte final):
 //    - EstadoCobranza (cobrador_0): transición al AZAR (anyOne) entre 2 destinos.
 //      Lo modelamos con una transición-función que elige aleatoriamente.
-//    - EstadoCreditos: en `right` hacía game.stop() (cerrar el juego). No hay
-//      equivalente; ambas direcciones reinician puntaje y vuelven a quiz_0.
+//    - EstadoCreditos: en `right` hacía game.stop() (cerrar el juego). Una pestaña
+//      web no puede cerrarse sola: lo modelamos con el nodo `bsod` (pantalla azul
+//      de Windows 9X, broma), un nodo HOJA sin salidas — el "reboot" es F5.
 
 import type {
   GameContext,
@@ -479,14 +480,26 @@ export const TREE: Record<string, NarrativeNode> = {
   to_be_continued: { id: 'to_be_continued', image: 'to-be-continued', sound: 'roundabout', left: 'creditos', right: 'creditos' },
 
   // --- CRÉDITOS (EstadoCreditos) -------------------------------------------
-  // En Wollok: reinicia puntaje, reinicializa música, vuelve a quiz_0. En `right`
-  // hacía game.stop() (cerrar el juego) -> no expresable; ambas vuelven a quiz_0.
-  // sonidoDeTransicion override = ah-shit-here-we-go-again (referencia GTA SA).
+  // En Wollok: `left` reinicia puntaje y vuelve a quiz_0; `right` hacía
+  // game.stop() (cerrar el juego). Una pestaña web no puede cerrarse sola, así
+  // que `right` va al nodo `bsod` (ver abajo).
+  // sonidoDeTransicion original = ah-shit-here-we-go-again (referencia GTA SA)
+  // en AMBAS direcciones; acá la DERECHA suena critical-error (Windows XP) para
+  // que el crash se escuche justo cuando aparece la BSOD, sin mezclarse con el
+  // ah-shit. Por eso el sonido va como transición asimétrica y NO como `sound`
+  // del nodo bsod.
   creditos: {
     id: 'creditos', image: 'creditos', music: M.in_the_end,
-    quizSounds: ['ah-shit-here-we-go-again', 'ah-shit-here-we-go-again'],
-    correctAnswer: 'left', // fuerza que SIEMPRE suene el sfx de transición de créditos.
+    quizSounds: ['ah-shit-here-we-go-again', 'critical-error'],
+    correctAnswer: 'left', // izq = ah-shit (reiniciar), der = critical-error (BSOD).
     left: scoreGoto('quiz_0', { reset: true }),
-    right: scoreGoto('quiz_0', { reset: true }),
+    right: 'bsod',
   },
+
+  // --- BSOD (reemplazo del game.stop() original) ---------------------------
+  // Nodo HOJA sin salidas: de una pantalla azul no se vuelve (el "reboot" es
+  // recargar la página). `silence` corta la música de créditos: la máquina
+  // "se colgó". Imagen: Windows 9X BSOD (Wikimedia Commons) -> imagen-bsod.png.
+  // El critical-error suena como transición creditos->right (ver arriba).
+  bsod: { id: 'bsod', image: 'bsod', music: M.silence },
 };
