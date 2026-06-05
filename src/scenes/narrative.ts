@@ -14,6 +14,7 @@
 import type { GameContext, Scene } from '../engine/types.js';
 import type { StateMachine } from '../engine/stateMachine.js';
 import { LOGICAL_WIDTH, LOGICAL_HEIGHT } from '../engine/renderer.js';
+import { imageUrl } from '../engine/assets.js';
 
 /**
  * Segundos que las decisiones quedan bloqueadas al cargar un nodo nuevo
@@ -33,6 +34,8 @@ export class NarrativeScene implements Scene {
   private currentImage: HTMLImageElement | null = null;
   /** Segundos restantes del bloqueo anti-flood (0 = decisiones habilitadas). */
   private lockRemaining = 0;
+  /** Telón "ambient blur" detrás del canvas (div #backdrop del index.html). */
+  private readonly backdrop = document.getElementById('backdrop');
 
   constructor(ctx: GameContext, machine: StateMachine) {
     this.ctx = ctx;
@@ -57,9 +60,12 @@ export class NarrativeScene implements Scene {
     // Limpia handlers para que no se solapen con la siguiente escena.
     for (const off of this.cleanups) off();
     this.cleanups = [];
-    // Restaura el fondo de la página por si el nodo activo lo había teñido
-    // (las otras escenas asumen el letterbox negro).
+    // Restaura el fondo de la página y apaga el telón blur por si el nodo
+    // activo los había seteado (las otras escenas asumen el letterbox negro).
     document.body.style.background = DEFAULT_PAGE_BACKGROUND;
+    if (this.backdrop) {
+      this.backdrop.style.backgroundImage = 'none';
+    }
   }
 
   /** Procesa una decisión del jugador y avanza el autómata. */
@@ -94,6 +100,16 @@ export class NarrativeScene implements Scene {
     // pinta del azul de la pantalla azul para que ocupe todo el visor). El #app
     // del index.html es transparente a propósito para que esto se vea.
     document.body.style.background = node.pageBackground ?? DEFAULT_PAGE_BACKGROUND;
+    // Telón "ambient blur": la MISMA imagen del nodo, difuminada, llena el
+    // letterbox (estilo reproductor de video). Un pageBackground EXPLÍCITO
+    // (bsod) manda: el telón se apaga para que el color sólido se vea limpio.
+    // La URL es la misma que carga el renderer, así que el navegador la sirve
+    // de su caché HTTP (no se descarga dos veces).
+    if (this.backdrop) {
+      this.backdrop.style.backgroundImage = node.pageBackground
+        ? 'none'
+        : `url("${imageUrl(node.image)}")`;
+    }
     this.currentImage = this.ctx.renderer.getCached(node.image) ?? null;
     void this.ctx.renderer
       .loadImage(node.image)

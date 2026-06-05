@@ -96,6 +96,14 @@ El detalle fino está comentado en la cabecera de `src/scenes/minigame.ts`
 
 ### Novela visual — drift respecto del original
 
+- **Letterbox con "ambient blur"**: el canvas es 8:7 y casi nunca coincide con
+  la ventana; las barras de letterbox ya no son negras: un telón (`#backdrop`,
+  CSS puro: `background-size: cover` + `filter: blur(48px) brightness(.6)` +
+  `scale(1.15)` para esconder el halo del blur) muestra la MISMA imagen del
+  nodo actual difuminada llenando el viewport, estilo reproductor de video.
+  Se actualiza solo al cambiar de nodo (GPU-composited, costo cero por frame)
+  y reutiliza la URL que ya cargó el renderer (caché HTTP). Un `pageBackground`
+  explícito (bsod) apaga el telón: el color sólido manda.
 - **Corte de sfx al cambiar de nodo**: al transicionar de nodo (y al saltar de
   nodo al volver del minijuego) se cortan TODOS los efectos de sonido en curso
   (`AudioManager.stopAllSfx()`), así los audios largos de un estado no se
