@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover: ocupa el notch/safe-area en iOS; initial-scale fija para evitar zoom. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>The Big Quiz</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+        /* Sin rebote/scroll-chaining en móvil. */
+        overscroll-behavior: none;
+        /* Nada de selección de texto ni resaltado al tocar. */
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        /* Sin zoom por doble-tap / ajuste de fuente en móvil. */
+        touch-action: manipulation;
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        /* 100dvh sigue la altura "dinámica" del visor móvil (barras que aparecen/desaparecen).
+           Fallback a 100vh para navegadores sin soporte de dvh. */
+        height: 100vh;
+        height: 100dvh;
+      }
+      /* Contenedor que centra el canvas y aplica letterboxing */
+      #app {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+        overflow: hidden;
+      }
+      /* El canvas mantiene la relación de aspecto del tablero Wollok (1024x896) */
+      #game {
+        display: block;
+        image-rendering: pixelated;
+        background: #000;
+        /* Todo el input táctil lo maneja JS (pointer events): sin scroll/zoom del navegador. */
+        touch-action: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game"></canvas>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

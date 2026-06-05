@@ -1,0 +1,17 @@
+{
+  "name": "the-big-quiz-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Port HTML5/TypeScript de The Big Quiz (Wollok) — Vite + TS vanilla.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2"
+  }
+}
