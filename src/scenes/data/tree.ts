@@ -280,7 +280,11 @@ export const TREE: Record<string, NarrativeNode> = {
   libertad_ending: { id: 'libertad_ending', image: 'libertad-ending', sound: 'libertad-ending', left: 'creditos', right: 'creditos' },
   // EstadoNoJuego: reset + 2 -> score 2.
   no_es_un_juego_2: { id: 'no_es_un_juego_2', image: 'no-es-un-juego-2', left: scoreGoto('ir_a_dormir_juego', { reset: true, add: 2 }), right: scoreGoto('ir_a_dormir_juego', { reset: true, add: 2 }) },
-  ir_a_dormir_juego: { id: 'ir_a_dormir_juego', image: 'ir-a-dormir', left: 'juego_0', right: 'juego_0' },
+  // musica=[minijuego, minijuego] de los mono_muerto era un TOGGLE: la pista del
+  // minijuego venía sonando -> PAUSA al salir de la pantalla de win/lose. Por eso
+  // M.silence acá (destino de mono_muerto_0/1 y mono_muerto3_X); sin esto,
+  // minijuego.mp3 quedaba sonando para siempre después del minijuego.
+  ir_a_dormir_juego: { id: 'ir_a_dormir_juego', image: 'ir-a-dormir', music: M.silence, left: 'juego_0', right: 'juego_0' },
 
   // Insultos al teléfono -> intro_quiz2 / videojuego_0
   telefono_14: { id: 'telefono_14', image: 'telefono-14', sound: 'mentiroso-de-mierda', left: 'intro_quiz2', right: 'videojuego_0' },
@@ -402,6 +406,9 @@ export const TREE: Record<string, NarrativeNode> = {
   mono_instrucciones: { id: 'mono_instrucciones', image: 'mono-instrucciones', left: 'minijuego_0', right: 'minijuego_0' },
   minijuego_0: { id: 'minijuego_0', image: 'minijuego', sound: 'monomovimiento', onEnter: { minigame: MONO_MINIGAME } },
   // mono_muerto_0/_1: nodos GLOBALES de win/lose del minijuego (referenciados por las 3 instancias).
+  // M.minijuego acá es FIEL: en el original la pista seguía sonando durante esta
+  // pantalla; su musica=[minijuego, minijuego] la pausaba recién AL SALIR (toggle),
+  // cosa que acá modela el M.silence del destino (ir_a_dormir_juego).
   // EstadoJuegoDificil (perder): reset + 1 -> 1.
   mono_muerto_0: { id: 'mono_muerto_0', image: 'mono-muerto-0', music: M.minijuego, left: scoreGoto('ir_a_dormir_juego', { reset: true, add: 1 }), right: scoreGoto('ir_a_dormir_juego', { reset: true, add: 1 }) },
   // EstadoBuenJuego (ganar): reset + 3 -> 3.
