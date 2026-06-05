@@ -41,15 +41,19 @@
       }
       /* Telón de fondo "ambient blur": versión difuminada de la imagen del nodo
          actual llenando el viewport (la escena narrativa setea backgroundImage).
-         - z-index -1: queda detrás del contenido pero ENCIMA del fondo del body
-           (por eso el tinte pageBackground requiere apagar este telón).
+         - z-index 0 (¡NO negativo!): un z-index negativo pinta debajo del fondo
+           del <body> (orden de pintado CSS: fondo de la raíz -> z negativos ->
+           fondos in-flow como el del body), y como el body es negro el telón
+           quedaba tapado. Por eso se apila hacia arriba: telón z0, #app z1.
+           Con la imagen en 'none' el telón es transparente y se ve el body
+           (así funciona el tinte pageBackground de la BSOD).
          - scale(1.15): el blur desvanece los bordes del elemento; escalado, ese
            halo queda fuera del viewport.
          - brightness(.6): atenúa para no competir con la imagen del canvas. */
       #backdrop {
         position: fixed;
         inset: 0;
-        z-index: -1;
+        z-index: 0;
         background: center / cover no-repeat;
         filter: blur(48px) brightness(0.6);
         transform: scale(1.15);
@@ -58,8 +62,11 @@
       /* Contenedor que centra el canvas y aplica letterboxing.
          Transparente A PROPÓSITO: el letterbox lo dan el telón #backdrop y el
          background del <body> (teñible por nodo vía pageBackground, p. ej. el
-         azul de la BSOD). Si se pinta acá, taparía ambos efectos. */
+         azul de la BSOD). Si se pinta acá, taparía ambos efectos.
+         position+z-index 1: por ENCIMA del telón (ver #backdrop). */
       #app {
+        position: relative;
+        z-index: 1;
         width: 100vw;
         height: 100vh;
         height: 100dvh;
