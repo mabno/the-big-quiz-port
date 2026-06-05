@@ -142,8 +142,10 @@ function boot(): void {
   const loop = (now: number): void => {
     const dt = (now - last) / 1000;
     last = now;
-    // Las escenas con lógica propia (minijuego) ya corren su update en su rAF;
-    // acá solo aseguramos el render de la escena activa por si no tiene loop propio.
+    // ÚNICO driver de la simulación: update(dt) + render() de la escena activa.
+    // OJO: las escenas NO deben correr un rAF propio además de este. Cuando el
+    // minijuego lo hacía, el update doble llenaba su acumulador de ticks a 2x
+    // y corría al DOBLE de velocidad que el original de Wollok.
     activeScene?.update?.(dt);
     activeScene?.render();
     requestAnimationFrame(loop);

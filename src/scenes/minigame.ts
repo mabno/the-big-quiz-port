@@ -26,6 +26,23 @@
 // OJO (decisión clave): el puntaje del minijuego es el objeto `puntaje` de Wollok,
 // SEPARADO del puntaje narrativo `juego.puntaje` (= ctx.score, usado para ramificar
 // los quizzes). Por eso acá llevamos un puntaje LOCAL y NO tocamos ctx.score.
+//
+// DESVÍOS DELIBERADOS DEL ORIGINAL (presentación; la mecánica NO cambia):
+//   - Sprites a 2x2 celdas: mono e ítems se dibujan a SPRITE_CELLS (64 px). Los PNG
+//     son de 64x64 nativos, así que a 2 celdas se ven 1:1, sin reescalado. Solo
+//     cambia el dibujo: la colisión sigue siendo por celda exacta, como en Wollok.
+//   - Caída CONTINUA: item.y es float y avanza por frame (dt) en update(), en vez
+//     de bajar de a 1 celda por tick (limitación de grid de wollok.game). La
+//     velocidad es la equivalente exacta (1 celda cada `delay` ticks de 100 ms) y
+//     la colisión se muestrea por tick sobre Math.round(y), así la ventana de
+//     atrape dura lo mismo que en el original.
+//   - Animación del mono: la LÓGICA de movimiento sigue siendo por celdas (un
+//     keydown = una celda, playerX entero, colisión idéntica), pero el sprite se
+//     desliza hacia su celda destino con un ease exponencial (playerVisualX) en
+//     vez de teletransportarse de celda en celda.
+//   - El update/render lo maneja SOLO el bucle global de main.ts. Antes esta escena
+//     corría ADEMÁS un rAF propio: el update doble llenaba el acumulador a 2x y el
+//     minijuego corría al DOBLE de velocidad que el original.
 
 import type { GameContext, MinigameConfig, Scene } from '../engine/types.js';
 import { BOARD_WIDTH } from '../engine/renderer.js';
@@ -42,6 +59,30 @@ const PLAYER_START_Y = 1;
 
 /** Fila desde la que caen los ítems (Wollok: y=27). */
 const SPAWN_Y = 27;
+
+/**
+ * Tamaño VISUAL de los sprites del minijuego (mono e ítems), en celdas.
+ * Los PNG son de 64x64 nativos y a 1 celda (32 px) se veían reducidos a la
+ * mitad; a 2 celdas se dibujan 1:1. Solo afecta el dibujo: la colisión sigue
+ * siendo por celda lógica, como en el original.
+ */
+const SPRITE_CELLS = 2;
+
+/**
+ * Tope de dt por frame (en ms). Con la pestaña en segundo plano rAF se pausa
+ * y el primer frame de vuelta llega con un dt enorme: sin tope, los ítems
+ * atravesarían filas enteras de golpe (túnel) y el acumulador dispararía una
+ * ráfaga de ticks juntos.
+ */
+const MAX_FRAME_MS = 250;
+
+/**
+ * Constante de tiempo (ms) del ease exponencial con el que el SPRITE del mono
+ * se desliza hacia su celda lógica. A 40 ms cubre ~95% del recorrido en 120 ms
+ * (= HOLD_REPEAT_MS del input táctil), así la animación nunca se queda atrás
+ * del auto-repeat al mantener apoyado. La lógica/colisión usa playerX ENTERO.
+ */
+const PLAYER_EASE_MS = 40;
 
 /** Tipos de ítem que caen y su efecto en el puntaje (minijuego.wlk). */
 type ItemKind = 'banana' | 'mate' | 'cafe';
@@ -62,11 +103,13 @@ const ITEM_SCORE: Record<ItemKind, number> = {
 interface FallingItem {
   kind: ItemKind;
   x: number;
+  /** Posición vertical CONTINUA, en celdas (float). Fila lógica = Math.round(y). */
   y: number;
-  /** Ticks que tarda en bajar una celda (Wollok: delay). */
-  delay: number;
-  /** Contador interno hasta `delay` (Wollok: delayCount). */
-  delayCount: number;
+  /**
+   * Velocidad de caída en celdas/ms. Equivale al `delay` del original (1 celda
+   * cada `delay` ticks de 100 ms): speed = 1 / (delay * TICK_MS).
+   */
+  speed: number;
 }
 
 export class MinigameScene implements Scene {
@@ -74,11 +117,7 @@ export class MinigameScene implements Scene {
   private readonly config: MinigameConfig;
   private readonly onFinish: MinigameFinish;
 
-  /** Id del rAF en curso (para poder cancelarlo en exit/stop). */
-  private rafId: number | null = null;
-  /** Timestamp del frame previo, para calcular dt. */
-  private lastTime = 0;
-  /** Acumulador para emular el tick fijo de 100 ms. */
+  /** Acumulador para emular el tick fijo de 100 ms (el dt llega del bucle global). */
   private accumulator = 0;
 
   // --- Estado del minijuego (todo se reinicia en enter()) ---
@@ -94,6 +133,8 @@ export class MinigameScene implements Scene {
   /** Posición del jugador (mono). Solo varía x; y queda fija en la fila de juego. */
   private playerX = PLAYER_START_X;
   private playerY = PLAYER_START_Y;
+  /** X VISUAL del mono (float): persigue a playerX con ease; solo afecta el dibujo. */
+  private playerVisualX = PLAYER_START_X;
   /** Sprite actual del mono: mono1 mirando a la izquierda, mono2 a la derecha. */
   private playerSprite: 'mono1.png' | 'mono2.png' = 'mono1.png';
   /** Bandera para no llamar a finish() más de una vez. */
@@ -125,8 +166,10 @@ export class MinigameScene implements Scene {
     this.items = [];
     this.playerX = PLAYER_START_X;
     this.playerY = PLAYER_START_Y;
+    this.playerVisualX = PLAYER_START_X;
     this.playerSprite = 'mono1.png';
     this.finished = false;
+    this.accumulator = 0;
 
     // Música de fondo del minijuego (Wollok: minijuego.mp3, volumen 0.4 en musica.wlk).
     if (this.config.music) {
@@ -150,11 +193,12 @@ export class MinigameScene implements Scene {
     this.cleanups.push(this.ctx.input.onKey('a', () => this.moverIzq()));
     this.cleanups.push(this.ctx.input.onKey('d', () => this.moverDer()));
 
-    this.start();
+    // NO arrancamos un rAF propio: el bucle global de main.ts ya llama a
+    // update(dt) + render() de la escena activa en cada frame (un rAF propio
+    // duplicaría el update y el minijuego correría a 2x; ver cabecera).
   }
 
   exit(): void {
-    this.stop();
     // Limpia handlers de teclado y vacía los ítems/visuales.
     for (const off of this.cleanups) off();
     this.cleanups = [];
@@ -177,35 +221,30 @@ export class MinigameScene implements Scene {
     }
   }
 
-  /** Arranca el bucle requestAnimationFrame. */
-  private start(): void {
-    this.lastTime = performance.now();
-    this.accumulator = 0;
-    const loop = (now: number): void => {
-      const dt = (now - this.lastTime) / 1000; // segundos
-      this.lastTime = now;
-      this.update(dt);
-      this.render();
-      // Si ya terminamos, no reprogramamos el frame.
-      if (!this.finished) {
-        this.rafId = requestAnimationFrame(loop);
-      }
-    };
-    this.rafId = requestAnimationFrame(loop);
-  }
-
-  /** Detiene el bucle. */
-  private stop(): void {
-    if (this.rafId !== null) {
-      cancelAnimationFrame(this.rafId);
-      this.rafId = null;
-    }
-  }
-
   update(dt: number): void {
     if (this.finished) return;
-    // Emula el paso fijo de 100 ms del game.onTick original.
-    this.accumulator += dt * 1000;
+    // Tope al dt: con la pestaña en segundo plano rAF se pausa y el primer
+    // frame de vuelta llega con un dt gigante (ver MAX_FRAME_MS).
+    const dtMs = Math.min(dt * 1000, MAX_FRAME_MS);
+
+    // Caída CONTINUA: los ítems avanzan por frame, desacoplados del tick de
+    // 100 ms (en Wollok bajaban de a 1 celda por limitación del motor).
+    for (const item of this.items) {
+      item.y -= dtMs * item.speed;
+    }
+
+    // Animación del mono: el sprite persigue a playerX (entero, la verdad lógica)
+    // con un ease exponencial independiente del framerate. Snap al llegar para no
+    // quedar acercándose asintóticamente para siempre.
+    const ease = 1 - Math.exp(-dtMs / PLAYER_EASE_MS);
+    this.playerVisualX += (this.playerX - this.playerVisualX) * ease;
+    if (Math.abs(this.playerX - this.playerVisualX) < 0.01) {
+      this.playerVisualX = this.playerX;
+    }
+
+    // Emula el paso fijo de 100 ms del game.onTick original para la LÓGICA:
+    // colisiones, despawn, dificultad, fin de juego y spawn.
+    this.accumulator += dtMs;
     while (this.accumulator >= TICK_MS && !this.finished) {
       this.accumulator -= TICK_MS;
       this.tick();
@@ -213,19 +252,23 @@ export class MinigameScene implements Scene {
   }
 
   /**
-   * Un "tick" de simulación. Port fiel de EstadoMinijuego.actualizar() (tree.wlk).
-   * ORDEN del original:
-   *   1) por cada ítem: colisión -> puntaje/sfx/quitar; si y==0 -> quitar; luego mover.
+   * Un "tick" de simulación. Port de EstadoMinijuego.actualizar() (tree.wlk).
+   * ORDEN del original (la caída ahora es continua y vive en update()):
+   *   1) por cada ítem: colisión -> puntaje/sfx/quitar; si llegó a y=0 -> quitar.
    *   2) si puntaje >= 15 -> dificultad = 2.
    *   3) si puntaje < 0 o >= 30 -> fin.
    *   4) si nuevoItem == 8/dificultad -> spawnear ítem; nuevoItem = 0.
    *   5) nuevoItem++.
    */
   private tick(): void {
-    // 1) Colisiones, despawn por borde y caída. Iteramos sobre una copia porque
-    //    mutamos `items` al quitar (igual que items.remove dentro del forEach Wollok).
+    // 1) Colisiones y despawn por borde. La fila lógica del ítem es Math.round(y):
+    //    round(y) == 1 vale durante 1 celda de recorrido (= `delay` ticks), o sea
+    //    la MISMA ventana de atrape que el original con y entero. Iteramos sobre
+    //    una copia porque mutamos `items` al quitar (igual que items.remove dentro
+    //    del forEach Wollok).
     for (const item of [...this.items]) {
-      if (item.x === this.playerX && item.y === this.playerY) {
+      const row = Math.round(item.y);
+      if (item.x === this.playerX && row === this.playerY) {
         const diferencia = ITEM_SCORE[item.kind];
         if (diferencia > 0) {
           this.ctx.audio.playSfx('coin');
@@ -234,11 +277,9 @@ export class MinigameScene implements Scene {
         }
         this.score += diferencia;
         this.removeItem(item);
-      } else if (item.y === 0) {
+      } else if (row <= 0) {
         this.removeItem(item);
       }
-      // mover() del Item: baja 1 celda cada `delay` ticks.
-      this.moverItem(item);
     }
 
     // 2) Ajuste de dificultad.
@@ -273,15 +314,6 @@ export class MinigameScene implements Scene {
     if (idx !== -1) this.items.splice(idx, 1);
   }
 
-  /** Caída del ítem (Wollok: Item.mover()). Baja 1 celda cada `delay` ticks. */
-  private moverItem(item: FallingItem): void {
-    item.delayCount += 1;
-    if (item.delayCount === item.delay) {
-      item.y -= 1;
-      item.delayCount = 0;
-    }
-  }
-
   /** Crea un ítem nuevo con tipo aleatorio (Wollok: probabilidades 20/40/resto). */
   private spawnItem(): void {
     const random = Math.random() * 100;
@@ -295,12 +327,14 @@ export class MinigameScene implements Scene {
     }
     // x aleatorio 0..31 (Wollok: 0.randomUpTo(32).truncate(0)).
     const x = Math.floor(Math.random() * BOARD_WIDTH);
+    // Velocidad continua equivalente al original: 1 celda cada `delay` ticks,
+    // con delay = 4/dificultad (fijada al momento del spawn, como en Wollok).
+    const delay = 4 / this.dificultad;
     this.items.push({
       kind,
       x,
       y: SPAWN_Y,
-      delay: 4 / this.dificultad,
-      delayCount: 0,
+      speed: 1 / (delay * TICK_MS),
     });
   }
 
@@ -314,15 +348,23 @@ export class MinigameScene implements Scene {
       r.drawBackground(bg);
     }
 
-    // Ítems que caen.
+    // Ítems que caen: a SPRITE_CELLS x SPRITE_CELLS, centrados en su celda lógica
+    // (drawSprite acepta coordenadas fraccionarias; y es float por la caída continua).
+    const off = (SPRITE_CELLS - 1) / 2;
     for (const item of this.items) {
       const sprite = r.getCached(ITEM_SPRITE[item.kind]);
-      if (sprite) r.drawSprite(sprite, item.x, item.y);
+      if (sprite) {
+        r.drawSprite(sprite, item.x - off, item.y - off, SPRITE_CELLS, SPRITE_CELLS);
+      }
     }
 
-    // Jugador (mono).
+    // Jugador (mono): centrado horizontal en su columna, con los pies en su fila
+    // (crece hacia arriba, así que la base queda donde estaba la celda original).
+    // Se dibuja en playerVisualX (float, animado); la colisión usa playerX entero.
     const mono = r.getCached(this.playerSprite);
-    if (mono) r.drawSprite(mono, this.playerX, this.playerY);
+    if (mono) {
+      r.drawSprite(mono, this.playerVisualX - off, this.playerY, SPRITE_CELLS, SPRITE_CELLS);
+    }
 
     // HUD: marcador de puntaje (Wollok: game.at(1, 26), "Puntaje: N", #FFFFFF).
     r.drawText(`Puntaje: ${this.score}`, 1, 26, '#FFFFFF');
@@ -330,12 +372,11 @@ export class MinigameScene implements Scene {
 
   /**
    * Termina el minijuego y devuelve el control a la narrativa.
-   * Detiene el bucle, marca finished (idempotente) y dispara onFinish.
+   * Marca finished (idempotente, y frena update/tick) y dispara onFinish.
    */
   private finish(nodeId: string): void {
     if (this.finished) return;
     this.finished = true;
-    this.stop();
     // Corta la música del minijuego antes de volver a la narrativa.
     this.ctx.audio.stopMusic();
     this.onFinish(nodeId);
